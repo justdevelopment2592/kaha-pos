@@ -1,0 +1,51 @@
+# Builds the Kaha POS Android APK in the cloud on every push to main (or by hand from the Actions tab).
+# Needs two repository secrets: SUPABASE_URL and SUPABASE_KEY (the publishable key).
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+    paths: ['mobile/**', '.github/workflows/build-apk.yml']
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate platform folders
+        run: |
+          if [ ! -d android ]; then bash tool/setup.sh; fi
+
+      - name: Write server settings
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          test -n "$SUPABASE_URL" -a -n "$SUPABASE_KEY" || { echo "Add SUPABASE_URL and SUPABASE_KEY in Settings → Secrets and variables → Actions"; exit 1; }
+          printf '{"SUPABASE_URL":"%s","SUPABASE_KEY":"%s"}' "$SUPABASE_URL" "$SUPABASE_KEY" > config/env.json
+
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - run: flutter test
+      - run: flutter build apk --release --dart-define-from-file=config/env.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kaha-pos-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14

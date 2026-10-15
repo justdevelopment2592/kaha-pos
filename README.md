@@ -11,7 +11,10 @@ mobile/     Flutter app (items, users, roles)    ← build on your Mac, see mobi
 prototype-android/  WebView shell for the UI prototype APK
 admin/      Next.js console                  ← later
 docs/       sync-contract.md                 ← what the app sends and receives
+.github/workflows/build-apk.yml             ← builds the Android APK on push to main
 ```
+
+The APK workflow needs two repository secrets (Settings → Secrets and variables → Actions): `SUPABASE_URL` and `SUPABASE_KEY` (the publishable key).
 
 ## Backend status (M1)
 Applied to `opensource-pos` (ap-southeast-1) on 2026-10-15:
